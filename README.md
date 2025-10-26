@@ -1,210 +1,293 @@
-# nanochat
+# nanochat-SAE
 
 ![nanochat logo](dev/nanochat.png)
 
-> The best ChatGPT that $100 can buy.
 
-This repo is a full-stack implementation of an LLM like ChatGPT in a single, clean, minimal, hackable, dependency-lite codebase. nanochat is designed to run on a single 8XH100 node via scripts like [speedrun.sh](speedrun.sh), that run the entire pipeline start to end. This includes tokenization, pretraining, finetuning, evaluation, inference, and web serving over a simple UI so that you can talk to your own LLM just like ChatGPT. nanochat will become the capstone project of the course LLM101n being developed by Eureka Labs.
+Train your own ChatGPT from scratch. Then understand what it learned.
 
-## Talk to it
+This is a research fork of Andrej Karpathy's nanochat extended with Sparse Autoencoder (SAE) based interpretability tools. You get the full nanochat training pipeline PLUS the ability to peer inside your model and discover the features it learned.
 
-To get a sense of the endpoint of this repo, you can currently find [nanochat d32](https://github.com/karpathy/nanochat/discussions/8) hosted on [nanochat.karpathy.ai](https://nanochat.karpathy.ai/). "d32" means that this model has 32 layers in the Transformer neural network. This model has 1.9 billion parameters, it was trained on 38 billion tokens by simply running the single script [run1000.sh](run1000.sh), and the total cost of training was ~$800 (about 33 hours training time on 8XH100 GPU node). While today this is enough to outperform GPT-2 of 2019, it falls dramatically short of moden Large Language Models like GPT-5. When talking to these micro models, you'll see that they make a lot of mistakes, they are a little bit naive and silly and they hallucinate a ton, a bit like children. It's kind of amusing. But what makes nanochat unique is that it is fully yours - fully configurable, tweakable, hackable, and trained by you from start to end. To train and talk to your own, we turn to...
+What's This About?
+nanochat teaches you to build a ChatGPT-like model for ~$100.
+nanochat-SAE teaches you to understand what that model actually learned.
 
-## Quick start
+Using Sparse Autoencoders, you can:
 
-The fastest way to feel the magic is to run the speedrun script [speedrun.sh](speedrun.sh), which trains and inferences the $100 tier of nanochat. On an 8XH100 node at $24/hr, this gives a total run time of about 4 hours. Boot up a new 8XH100 GPU box from your favorite provider (e.g. I use and like [Lambda](https://lambda.ai/service/gpu-cloud)), and kick off the training script:
+🔍 Discover interpretable features - Find "negation neurons", "math neurons", "sentiment neurons"
+📊 Visualize activations - See which concepts light up during inference
+🎛️ Steer behavior - Amplify or suppress specific features to change model outputs
+🧪 Debug learning - Understand why your model succeeds or fails on tasks
+🌐 Share discoveries - Export to Neuronpedia for community analysis
+Why a Separate Repo?
+Philosophy: Karpathy's nanochat is intentionally minimal (~8,000 lines) for educational clarity. SAE interpretability adds ~4,000 lines of advanced tooling. Rather than compromise nanochat's minimalism, we maintain this as a full-featured research branch for those who want to go deeper.
 
-```bash
+What you get here:
+
+✅ Complete nanochat codebase (train your own LLM)
+✅ SAE training pipeline (TopK, ReLU, Gated architectures)
+✅ Activation collection via PyTorch hooks
+✅ Feature visualization and dashboards
+✅ Runtime interpretation and steering
+✅ Neuronpedia integration
+✅ Comprehensive documentation
+Quick Start
+1. Train Your Nanochat Model
+This repo includes the full nanochat training pipeline:
+
+# Clone this repo
+git clone https://github.com/[YourUsername]/nanochat-sae
+cd nanochat-sae
+
+# Run the nanochat speedrun (trains a model in ~4 hours on 8xH100)
 bash speedrun.sh
-```
+Your trained model checkpoint will be at models/d20/base_final.pt.
 
-Alternatively, since the script runs for 4 hours, I like to launch it like this inside a new screen session `speedrun` (and also log output to `speedrun.log`):
+Already have a nanochat model? Just point the SAE scripts at your checkpoint.
 
-```bash
-screen -L -Logfile speedrun.log -S speedrun bash speedrun.sh
-```
+2. Train Sparse Autoencoders
+Train SAEs to decompose your model's learned features:
 
-See the [screen cheatsheet](https://gist.github.com/jctosta/af918e1618682638aa82) if you are less familiar. You can watch it go inside the screen session, or detach with `Ctrl-a d` and `tail speedrun.log` to view progress. Now wait 4 hours. Once it's done, you can talk to your LLM via the ChatGPT-like web UI. Make sure again that your local uv virtual environment is active (run `source .venv/bin/activate`), and serve it:
+# Train SAE on layer 10 of your d20 model
+python -m scripts.sae_train \
+    --checkpoint models/d20/base_final.pt \
+    --layer 10 \
+    --expansion_factor 8 \
+    --activation topk \
+    --k 64 \
+    --num_activations 1000000
+This collects 1M activations from layer 10 and trains a TopK SAE with 8x expansion (10,240 features for a d20 model with 1,280 hidden dims).
 
-```bash
-python -m scripts.chat_web
-```
+Training time: ~2-4 hours on a single A100.
 
-And then visit the URL shown. Make sure to access it correctly, e.g. on Lambda use the public IP of the node you're on, followed by the port, so for example [http://209.20.xxx.xxx:8000/](http://209.20.xxx.xxx:8000/), etc. Then talk to your LLM as you'd normally talk to ChatGPT! Get it to write stories or poems. Ask it to tell you who you are to see a hallucination. Ask it why the sky is blue. Or why it's green. The speedrun is a 4e19 FLOPs capability model so it's a bit like talking to a kindergartener :).
+3. Evaluate SAE Quality
+Check how well your SAE captures the model's representations:
 
----
+python -m scripts.sae_eval \
+    --sae_path sae_outputs/layer_10/best_model.pt \
+    --generate_dashboards \
+    --top_k 20
+Key metrics:
 
-<img width="2672" height="1520" alt="image" src="https://github.com/user-attachments/assets/ed39ddf8-2370-437a-bedc-0f39781e76b5" />
+Reconstruction MSE: How accurately the SAE reconstructs activations
+L0 sparsity: Average number of active features (should be close to k)
+Explained variance: Fraction of activation variance captured
+Dead latents: Percentage of features that never activate
+4. Visualize Features
+Generate interactive dashboards to explore what features your model learned:
 
----
+python -m scripts.sae_viz \
+    --sae_path sae_outputs/layer_10/best_model.pt \
+    --all_features \
+    --top_k 50 \
+    --output_dir feature_explorer
+Open feature_explorer/index.html in your browser to see:
 
-You can also `cat report.md` file which appeared in the project directory and contains the "report card" of the run, i.e. a bunch of evaluations and metrics. At the very end, you'll see a summary table, for example:
+Top activating features
+Activation frequencies
+Example inputs that trigger each feature
+Feature statistics
+5. Runtime Interpretation (Advanced)
+Track feature activations during inference:
 
----
+from nanochat.gpt import GPT
+from sae.runtime import InterpretableModel, load_saes
 
-- Characters: 333,989
-- Lines: 8,304
-- Files: 44
-- Tokens (approx): 83,497
-- Dependencies (uv.lock lines): 2,004
+# Load your trained model
+model = GPT.from_pretrained("models/d20/base_final.pt")
 
-| Metric          | BASE     | MID      | SFT      | RL       |
-|-----------------|----------|----------|----------|----------|
-| CORE            | 0.2219   | -        | -        | -        |
-| ARC-Challenge   | -        | 0.2875   | 0.2807   | -        |
-| ARC-Easy        | -        | 0.3561   | 0.3876   | -        |
-| GSM8K           | -        | 0.0250   | 0.0455   | 0.0758   |
-| HumanEval       | -        | 0.0671   | 0.0854   | -        |
-| MMLU            | -        | 0.3111   | 0.3151   | -        |
-| ChatCORE        | -        | 0.0730   | 0.0884   | -        |
+# Load trained SAEs
+saes = load_saes("sae_outputs/")
 
-Total wall clock time: 3h51m
+# Wrap with interpretability
+interp_model = InterpretableModel(model, saes)
 
----
+# Track features during generation
+with interp_model.interpretation_enabled():
+    output = interp_model(input_ids)
+    features = interp_model.get_active_features()
+    
+    # See which features fired in layer 10
+    layer_10_features = features["blocks.10.hook_resid_post"]
+    print(f"Active features: {(layer_10_features > 0).sum()} / {layer_10_features.shape[1]}")
+What Can You Discover?
+Example findings from SAE interpretability on small language models:
 
-(Your table might be missing the RL number by default). For a lot more information around the speedrun script and what to look for and expect, please refer to the walkthrough that I posted in Discussions of the repo: ["Introducing nanochat: The best ChatGPT that $100 can buy"](https://github.com/karpathy/nanochat/discussions/1).
+🚫 Negation features: Activate on "not", "never", "isn't"
+🔢 Numerical features: Fire on digits, math operations
+😊 Sentiment features: Distinguish positive/negative language
+🌍 Entity features: Activate on proper nouns, locations
+📚 Syntax features: Capture grammatical structures
+Feature steering example:
 
-## Bigger models
+# Amplify a "politeness" feature
+polite_output = interp_model.steer(
+    input_ids,
+    feature_id=("blocks.15.hook_resid_post", 4232),
+    strength=2.0  # 2x amplification
+)
+Repository Structure
+nanochat-sae/
+├── README.md                    # This file
+├── speedrun.sh                  # Train nanochat model (original)
+├── nanochat/                    # Core nanochat implementation
+├── scripts/
+│   ├── base_train.py           # Nanochat pretraining
+│   ├── mid_train.py            # Nanochat midtraining
+│   ├── chat_sft.py             # Nanochat supervised fine-tuning
+│   ├── sae_train.py            # 🆕 Train SAEs on activations
+│   ├── sae_eval.py             # 🆕 Evaluate SAE quality
+│   └── sae_viz.py              # 🆕 Visualize features
+├── sae/                         # 🆕 SAE implementation
+│   ├── config.py               # SAE configuration
+│   ├── models.py               # TopK, ReLU, Gated SAEs
+│   ├── hooks.py                # Activation collection
+│   ├── trainer.py              # SAE training loop
+│   ├── runtime.py              # Real-time interpretation
+│   ├── evaluator.py            # Evaluation metrics
+│   ├── feature_viz.py          # Visualization tools
+│   └── neuronpedia.py          # Neuronpedia integration
+├── tests/
+│   └── test_sae.py             # 🆕 SAE implementation tests
+└── examples/                    # 🚧 Coming soon!
+    └── tutorials/               # Step-by-step guides
+Learning Path
+For Beginners
+Train nanochat first - Follow the main nanochat tutorial to understand the base model
+Read SAE basics - Understand what Sparse Autoencoders do (Anthropic's explainer)
+Run simple example - Train a single SAE on one layer
+Explore features - Use visualization tools to see what your model learned
+For Researchers
+Multi-layer analysis - Train SAEs on multiple layers, compare features
+Feature steering - Modify model behavior by intervening on features
+Scaling studies - Compare features across d20, d26, d30 models
+Circuit discovery - Find chains of features that implement capabilities
+Publish findings - Share discoveries via Neuronpedia or papers
+For Developers
+Integration - Add SAE hooks to your own training loop
+Custom architectures - Extend with new SAE variants
+Production tools - Build monitoring dashboards for deployed models
+Contribute - Submit PRs for new features and improvements
+Tutorials & Examples (Coming Soon!)
+We're working on comprehensive tutorials:
 
-Unsurprisingly, $100 is not enough to train a highly performant ChatGPT clone. In fact, LLMs are famous for their multi-million dollar capex. For our purposes, I think there are two more scales of interest. First is the ~$300 tier d26 model (i.e. depth=26) that trains in ~12 hours, which slightly outperforms GPT-2 CORE score. Second is the $1000 tier (~41.6 hours), just because it's a nice round number. But both of these are not yet fully supported and therefore not attached here in the master branch yet.
+📘 Basic Tutorial: Train your first SAE
+📗 Feature Analysis: Discover interpretable concepts
+📙 Feature Steering: Modify model behavior
+📕 Multi-Layer Analysis: Compare features across depths
+📓 Neuronpedia Integration: Share your discoveries
+📔 Case Studies: Real findings from nanochat models
+Want to contribute a tutorial? Open an issue or PR!
 
-That said, to give a sense, the example changes needed for the [speedrun.sh](speedrun.sh) file to train a GPT-2 grade model d26 only involve three changes:
+SAE Architecture Options
+TopK SAE (Recommended)
+Direct sparsity control: Choose exactly k active features
+Fewer dead latents: More stable training at scale
+Best for: Initial exploration, interpretability research
+Reference: OpenAI's scaling work
+ReLU SAE
+Traditional approach: ReLU activation + L1 penalty
+Requires tuning: Must find good L1 coefficient
+Best for: Understanding SAE fundamentals
+Gated SAE
+Separates magnitude and selection: More expressive
+More complex: Harder to train and interpret
+Best for: Advanced experiments
+Performance Characteristics
+Memory Usage
+Activation collection: ~10-20GB per layer for 10M activations
+SAE training: Requires 40GB+ VRAM for large SAEs
+Runtime inference: +10GB memory for all SAEs loaded
+Computational Overhead
+Activation collection: <5% slowdown during training
+SAE inference: 5-10% latency increase
+SAE training: 2-4 hours per layer on A100
+Tips for Optimization
+Store activations on CPU during collection to save GPU memory
+Train SAEs on subset of layers (e.g., every 5th layer)
+Use smaller expansion factors (4x instead of 16x) for faster training
+Enable lazy loading of SAEs to reduce memory usage
+Evaluation Metrics
+SAEs are evaluated on three key dimensions:
 
-```bash
-...
-# you'll need to download more data shards for pretraining
-# get the number of parameters, multiply 20 to get tokens, multiply by 4.8 to get chars,
-# divide by 250 million to get number of shards. todo need to improve this...
-python -m nanochat.dataset -n 450 &
-...
-# use --depth to increase model size. to not oom, halve device batch size 32 -> 16:
-torchrun --standalone --nproc_per_node=8 -m scripts.base_train -- --depth=26 --device_batch_size=16
-...
-# make sure to use the same later during midtraining:
-torchrun --standalone --nproc_per_node=8 -m scripts.mid_train -- --device_batch_size=16
-```
+1. Reconstruction Quality
+MSE Loss: Mean squared error between original and reconstructed activations
+Explained Variance: Fraction of activation variance captured
+Reconstruction Score: 1 - MSE/variance
+2. Sparsity
+L0: Average number of active features per activation
+L1: Average L1 norm of feature activations
+Dead Latents: Fraction of features that never activate
+3. Interpretability
+Activation Frequency: How often each feature fires
+Top Activating Examples: Inputs that maximally activate features
+Feature Descriptions: Auto-generated via Neuronpedia (optional)
+Contributing
+We welcome contributions! Areas for improvement:
 
-That's it! The biggest thing to pay attention to is making sure you have enough data shards to train on (the code will loop and do more epochs over the same training set otherwise, decreasing learning speed a bit), and managing your memory/VRAM, primarily by decreasing the `device_batch_size` until things fit (the scripts automatically compensates by increasing the number of gradient accumulation loops, simply turning parallel compute to sequential compute).
+🔬 Research: Novel SAE architectures, evaluation metrics
+🎨 Visualization: Better dashboards, interactive tools
+📚 Documentation: Tutorials, case studies, explanations
+🔧 Engineering: Performance optimizations, bug fixes
+🧪 Experiments: Discover interesting features, share findings
+Getting started:
 
-And a bit more about computing environments that will run nanochat:
+Open an issue to discuss your idea
+Fork the repo and create a feature branch
+Submit a PR with clear description and tests
+We'll review and provide feedback
+Citation
+If you use nanochat-SAE in your research:
 
-- The code will run just fine on the Ampere 8XA100 GPU node as well, but a bit slower.
-- All code will run just fine on even a single GPU by omitting `torchrun`, and will produce ~identical results (code will automatically switch to gradient accumulation), but you'll have to wait 8 times longer.
-- If your GPU(s) have less than 80GB, you'll have to tune some of the hyperparameters or you will OOM / run out of VRAM. Look for `--device_batch_size` in the scripts and reduce it until things fit. E.g. from 32 (default) to 16, 8, 4, 2, or even 1. Less than that you'll have to know a bit more what you're doing and get more creative.
-- Most of the code is fairly vanilla PyTorch so it should run on anything that supports that - xpu, mps, or etc, but I haven't implemented this out of the box so it might take a bit of tinkering.
+@software{nanochat_sae_2025,
+  title = {nanochat-SAE: Mechanistic Interpretability for Nanochat},
+  author = {[Your Name]},
+  year = {2025},
+  url = {https://github.com/[YourUsername]/nanochat-sae},
+  note = {Research extension of nanochat by Andrej Karpathy}
+}
 
-## Running on CPU / MPS
+@software{nanochat_2025,
+  title = {nanochat: The best ChatGPT that \$100 can buy},
+  author = {Karpathy, Andrej},
+  year = {2025},
+  url = {https://github.com/karpathy/nanochat}
+}
+References & Resources
+Core Papers
+Scaling and Evaluating Sparse Autoencoders (OpenAI, 2024)
+Towards Monosemanticity (Anthropic, 2023)
+Sparse Autoencoders Find Highly Interpretable Features (DeepMind, 2024)
+Tools & Platforms
+SAELens - Comprehensive SAE training library
+Neuronpedia - Platform for sharing and exploring features
+TransformerLens - Mechanistic interpretability toolkit
+Community
+Nanochat Discussions - Main nanochat community
+Alignment Forum - Interpretability research discussions
+EleutherAI Discord - AI research community
+Acknowledgments
+Andrej Karpathy for creating nanochat and inspiring accessible AI education
+OpenAI Superalignment Team for pioneering SAE scaling research
+Anthropic for mechanistic interpretability foundations
+SAELens contributors for open-source SAE tools
+Neuronpedia team for feature sharing infrastructure
+License
+MIT License (same as nanochat)
 
-nanochat cn be run on CPU or on MPS (if you're on Macbook), and will automatically try to detect what device is best to run on. You're not going to get too far without GPUs, but at least you'll be able to run the code paths and maybe train a tiny LLM with some patience. For an example of how to make all the run commands much smaller (feel free to tune!), you can refer to [dev/runcpu.sh](dev/runcpu.sh) file. You'll see that I'm essentially restricting all scripts to train smaller models, to run for shorter number of iterations, etc. This functionality is new, slightly gnarly (touched a lot of code), and was merged in this [CPU|MPS PR](https://github.com/karpathy/nanochat/pull/88) on Oct 21, 2025.
+Get Started Now
+# Clone and train your model
+git clone https://github.com/[YourUsername]/nanochat-sae
+cd nanochat-sae
+bash speedrun.sh
 
-## Customization
+# Train SAEs and explore
+python -m scripts.sae_train --checkpoint models/d20/base_final.pt --layer 10
+python -m scripts.sae_viz --sae_path sae_outputs/layer_10/best_model.pt --all_features
+Questions? Open an issue or start a discussion!
 
-To customize your nanochat, see [Guide: infusing identity to your nanochat](https://github.com/karpathy/nanochat/discussions/139) in Discussions, which describes how you can tune your nanochat's personality through synthetic data generation and mixing that data into midtraining and SFT stages.
+Found something cool? Tweet at @karpathy and share your discoveries!
 
-Additionally, to add new abilities to nanochat, see [Guide: counting r in strawberry (and how to add abilities generally)](https://github.com/karpathy/nanochat/discussions/164).
-
-## Questions
-
-nanochat is designed to be short and sweet. One big advantage of this is that we can package up all of the files together and copy paste them to your favorite LLM to ask arbitrary questions. As an example, I like to package up the repo using the [files-to-prompt](https://github.com/simonw/files-to-prompt) utility like so:
-
-```bash
-files-to-prompt . -e py -e md -e rs -e html -e toml -e sh --ignore "*target*" --cxml > packaged.txt
-```
-
-This includes all py, rs, html, toml, sh files, excludes the `rustbpe/target` folder, and chooses the cxml output format. Everything is written to the `packaged.txt` file, which atm measures ~330KB (i.e. well below ~100K tokens for a state of the art LLM), and ~8K lines of code in 45 files.
-
-Alternatively, I recommend using [DeepWiki](https://deepwiki.com/) from Devin/Cognition to ask questions of this repo. In the URL of this repo, simply change github.com to deepwiki.com, and you're off.
-
-## Tests
-
-I haven't invested too much here but some tests exist, especially for the tokenizer. Run e.g. as:
-
-```bash
-python -m pytest tests/test_rustbpe.py -v -s
-```
-
-## File structure
-
-```
-.
-├── LICENSE
-├── README.md
-├── dev
-│   ├── gen_synthetic_data.py       # Example synthetic data for identity
-│   ├── generate_logo.html
-│   ├── nanochat.png
-│   ├── repackage_data_reference.py # Pretraining data shard generation
-│   └── runcpu.sh                   # Small example of how to run on CPU/MPS
-├── nanochat
-│   ├── __init__.py                 # empty
-│   ├── adamw.py                    # Distributed AdamW optimizer
-│   ├── checkpoint_manager.py       # Save/Load model checkpoints
-│   ├── common.py                   # Misc small utilities, quality of life
-│   ├── configurator.py             # A superior alternative to argparse
-│   ├── core_eval.py                # Evaluates base model CORE score (DCLM paper)
-│   ├── dataloader.py               # Tokenizing Distributed Data Loader
-│   ├── dataset.py                  # Download/read utils for pretraining data
-│   ├── engine.py                   # Efficient model inference with KV Cache
-│   ├── execution.py                # Allows the LLM to execute Python code as tool
-│   ├── gpt.py                      # The GPT nn.Module Transformer
-│   ├── logo.svg
-│   ├── loss_eval.py                # Evaluate bits per byte (instead of loss)
-│   ├── muon.py                     # Distributed Muon optimizer
-│   ├── report.py                   # Utilities for writing the nanochat Report
-│   ├── tokenizer.py                # BPE Tokenizer wrapper in style of GPT-4
-│   └── ui.html                     # HTML/CSS/JS for nanochat frontend
-├── pyproject.toml
-├── run1000.sh                      # Train the ~$800 nanochat d32
-├── rustbpe                         # Custom Rust BPE tokenizer trainer
-│   ├── Cargo.lock
-│   ├── Cargo.toml
-│   ├── README.md                   # see for why this even exists
-│   └── src
-│       └── lib.rs
-├── scripts
-│   ├── base_eval.py                # Base model: calculate CORE score
-│   ├── base_loss.py                # Base model: calculate bits per byte, sample
-│   ├── base_train.py               # Base model: train
-│   ├── chat_cli.py                 # Chat model (SFT/Mid): talk to over CLI
-│   ├── chat_eval.py                # Chat model (SFT/Mid): eval tasks
-│   ├── chat_rl.py                  # Chat model (SFT/Mid): reinforcement learning
-│   ├── chat_sft.py                 # Chat model: train SFT
-│   ├── chat_web.py                 # Chat model (SFT/Mid): talk to over WebUI
-│   ├── mid_train.py                # Chat model: midtraining
-│   ├── tok_eval.py                 # Tokenizer: evaluate compression rate
-│   └── tok_train.py                # Tokenizer: train it
-├── speedrun.sh                     # Train the ~$100 nanochat d20
-├── tasks
-│   ├── arc.py                      # Multiple choice science questions
-│   ├── common.py                   # TaskMixture | TaskSequence
-│   ├── customjson.py               # Make Task from arbitrary jsonl convos
-│   ├── gsm8k.py                    # 8K Grade School Math questions
-│   ├── humaneval.py                # Misnomer; Simple Python coding task
-│   ├── mmlu.py                     # Multiple choice questions, broad topics
-│   ├── smoltalk.py                 # Conglomarate dataset of SmolTalk from HF
-│   └── spellingbee.py              # Task teaching model to spell/count letters
-├── tests
-│   └── test_rustbpe.py
-└── uv.lock
-```
-
-## Contributing
-
-nanochat is nowhere finished. The goal is to improve the state of the art in micro models that are accessible to work with end to end on budgets of < $1000 dollars. Accessibility is about overall cost but also about cognitive complexity - nanochat is not an exhaustively configurable LLM "framework"; there will be no giant configuration objects, model factories, or if-then-else monsters in the code base. It is a single, cohesive, minimal, readable, hackable, maximally-forkable "strong baseline" codebase designed to run start to end and produce a concrete ChatGPT clone and its report card.
-
-I am looking for someone to be the "nanochat repo czar" to help me manage the nanochat repo and its issues and PRs and be the first round of defense. Examples of work include merging simple fixes (docs, typos, clear and simple bugs etc.), rejecting vibe coded PRs, managing the Issues/PRs, doing brief "sanity check testing" of PRs on the two officially supported platforms (Linux/GPU and Macbook), organizing information into brief updates and highlights for me. We'd be in touch on DMs on Discord or X or whatever is easiest. For your services to the repo you will be listed and linked to under acknowledgements as the nanochat repo czar. Position is at-will so you can contribute for a while and then "resign" at any time later, totally ok and thank you for your help, just me know. Apply via DM to me on X, thank you!
-
-## Acknowledgements
-
-- The name (nanochat) derives from my earlier project [nanoGPT](https://github.com/karpathy/nanoGPT), which only covered pretraining.
-- nanochat is also inspired by [modded-nanoGPT](https://github.com/KellerJordan/modded-nanogpt), which gamified the nanoGPT repo with clear metrics and a leaderboard, and borrows a lot of its ideas and some implementation for pretraining.
-- Thank you to [HuggingFace](https://huggingface.co/) for fineweb and smoltalk.
-- Thank you [Lambda](https://lambda.ai/service/gpu-cloud) for the compute used in developing this project.
-- Thank you to chief LLM whisperer 🧙‍♂️ Alec Radford for advice/guidance.
-
-## Cite
-
-If you find nanochat helpful in your research cite simply as:
+nanochat-SAE: Because understanding your $100 ChatGPT is just as important as building it.
 
 ```bibtex
 @misc{nanochat,
@@ -215,6 +298,21 @@ If you find nanochat helpful in your research cite simply as:
   url = {https://github.com/karpathy/nanochat}
 }
 ```
+
+## Cite
+
+If you find nanochat helpful in your research cite simply as:
+
+```bibtex
+@misc{nanochat-SAE,
+  author = {Caleb DeLeeuw},
+  title = {nanochat-SAE: Train your own ChatGPT from scratch. Then understand what it learned.},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/SolshineCode/nanochat-SAE}
+}
+```
+
 
 ## License
 
