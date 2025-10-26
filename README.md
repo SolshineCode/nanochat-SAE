@@ -1,6 +1,7 @@
 # nanochat-SAE
 
-![nanochat logo](dev/nanochat.png) <img width="593" height="205" alt="image" src="https://github.com/user-attachments/assets/5ad88d88-86e4-4586-8248-2090cbbfa68f" />
+![nanochat logo](dev/nanochat.png) <img width="1024" height="367" alt="image" src="https://github.com/user-attachments/assets/63ce119a-4448-4518-905a-e9a13ab223ef" />
+
 
 
 
