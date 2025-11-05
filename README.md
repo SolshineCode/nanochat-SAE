@@ -10,7 +10,7 @@ Thanks to @Karpathy for the encouragement.
 
 Train your own ChatGPT from scratch. Then understand what it learned.
 
-This is a research fork of Andrej Karpathy's nanochat extended with Sparse Autoencoder (SAE) based interpretability tools. You get the full nanochat training pipeline PLUS the ability to peer inside your model and discover the features it learned.
+This is a research fork of Andrej Karpathy's nanochat extended with Sparse Autoencoder (SAE) based interpretability tools created and maintained by Caleb DeLeeuw. You get the full nanochat training pipeline PLUS the ability to peer inside your model and discover the features it learned.
 
 What's This About?
 nanochat teaches you to build a ChatGPT-like model for ~$100.
