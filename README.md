@@ -3,6 +3,9 @@
 ![nanochat logo](dev/nanochat.png) <img width="1024" height="367" alt="image" src="https://github.com/user-attachments/assets/63ce119a-4448-4518-905a-e9a13ab223ef" />
 
 
+The official Nanochat extension for SAEs and mechanistic interpretability.
+Thanks to @Karpathy for the encouragement.
+![Screenshot_20251104_160253_GitHub](https://github.com/user-attachments/assets/13d89da0-ab1d-4237-b855-d0b1b4b2666a)
 
 
 Train your own ChatGPT from scratch. Then understand what it learned.
