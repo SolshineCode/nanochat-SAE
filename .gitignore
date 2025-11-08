@@ -5,3 +5,7 @@ rustbpe/target/
 dev-ignore/
 report.md
 eval_bundle/
+models/
+sae_outputs/
+*.pt
+*.pth
