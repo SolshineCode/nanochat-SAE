@@ -43,13 +43,21 @@ What you get here:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_training.ipynb)
 
-Perfect for:
+**How to run:**
+1. Click the badge above to open in Colab
+2. Go to Runtime → Change runtime type → Select **T4 GPU**
+3. Run all cells (setup takes ~5-10 minutes)
+4. Upload a pre-trained checkpoint or point to one in Google Drive
+5. (Optional) Upload your custom reference dataset
+6. Train SAE and visualize learned features!
+
+**Perfect for:**
 - 🎓 Learning SAE interpretability without expensive hardware
 - 🧪 Quick experiments with custom reference datasets
 - 📊 Analyzing features from pre-trained models
 - 💡 Testing ideas before scaling up
 
-Just upload the notebook to Colab, enable T4 GPU, and run! See `colab_sae_training.ipynb` for details.
+See `COLAB_GUIDE.md` for detailed instructions and troubleshooting.
 
 Quick Start
 1. Train Your Nanochat Model
