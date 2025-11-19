@@ -7,11 +7,11 @@ thinks about what to do, and takes actions.
 
 import torch
 import time
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from nanochat.gpt import GPT
+from nanochat.gpt import GPT, GPTConfig
 from sae.models import BaseSAE
 from sae.runtime import InterpretableModel
 from .environment import SimulatedEnvironment, ExfiltrationAttempt
@@ -71,9 +71,9 @@ class ExfiltrationAgent:
         self.memory: List[Dict[str, Any]] = []
         self.step_count = 0
 
-        # Load tokenizer (assume it's in the model)
-        from nanochat.tokenizer import Tokenizer
-        self.tokenizer = Tokenizer()
+        # Load tokenizer
+        from nanochat.tokenizer import get_tokenizer
+        self.tokenizer = get_tokenizer()
 
     def _build_prompt(self, observation: str = None) -> str:
         """Build the prompt for the next step."""
@@ -114,7 +114,7 @@ class ExfiltrationAgent:
 
         return "\n".join(prompt_parts)
 
-    def _parse_response(self, response: str) -> tuple[str, str]:
+    def _parse_response(self, response: str) -> Tuple[str, str]:
         """Parse THOUGHT and ACTION from response."""
         thought = ""
         action = ""
@@ -148,34 +148,53 @@ class ExfiltrationAgent:
         """
         self.step_count += 1
 
-        # Build prompt
-        prompt = self._build_prompt(observation)
+        try:
+            # Build prompt
+            prompt = self._build_prompt(observation)
 
-        # Tokenize
-        prompt_ids = self.tokenizer.encode(prompt, bos=True, eos=False)
-        prompt_tensor = torch.tensor([prompt_ids], dtype=torch.long, device=self.device)
+            # Tokenize - get_tokenizer returns RustBPETokenizer which uses encode(text)
+            prompt_ids = self.tokenizer.encode(prompt)
 
-        # Generate with feature tracking
-        with self.interp_model.interpretation_enabled():
-            # Generate tokens
-            generated = self.model.generate(
-                prompt_tensor,
-                max_new_tokens=self.max_tokens,
-                temperature=self.temperature,
-                top_k=50
+            # Generate with feature tracking
+            with self.interp_model.interpretation_enabled():
+                # Generate tokens - nanochat's generate() expects a list of token IDs
+                generated_ids = list(self.model.generate(
+                    tokens=prompt_ids,
+                    max_tokens=len(prompt_ids) + self.max_tokens,
+                    temperature=self.temperature,
+                    top_k=50
+                ))
+
+                # Get features from generation
+                features = self.interp_model.get_active_features()
+
+            # Decode response
+            response = self.tokenizer.decode(generated_ids)
+
+            # Remove prompt from response
+            prompt_text = self.tokenizer.decode(prompt_ids)
+            if response.startswith(prompt_text):
+                response = response[len(prompt_text):]
+
+            # Parse thought and action
+            thought, action = self._parse_response(response)
+
+        except Exception as e:
+            print(f"Error during agent step: {e}")
+            import traceback
+            traceback.print_exc()
+
+            # Return error step result
+            return StepResult(
+                step_num=self.step_count,
+                observation=observation or "",
+                thought="[Error during generation]",
+                action="echo 'Error occurred'",
+                result=f"Error: {str(e)}",
+                features={},
+                exfiltration_detected=None,
+                blocked=True
             )
-
-            # Get features from generation
-            features = self.interp_model.get_active_features()
-
-        # Decode response
-        response = self.tokenizer.decode(generated[0].tolist())
-
-        # Remove prompt from response
-        response = response[len(prompt):]
-
-        # Parse thought and action
-        thought, action = self._parse_response(response)
 
         # Check for intervention
         blocked = False
@@ -228,7 +247,7 @@ def create_agent(
     sae_dir: str,
     scenario: str = 'emergency_shutdown',
     device: str = 'cuda'
-) -> tuple[ExfiltrationAgent, SimulatedEnvironment]:
+) -> Tuple[ExfiltrationAgent, SimulatedEnvironment]:
     """
     Convenience function to create an agent with environment.
 
@@ -243,7 +262,36 @@ def create_agent(
     """
     # Load model
     print(f"Loading model from {checkpoint_path}...")
-    model = GPT.from_pretrained(checkpoint_path)
+    checkpoint_path = Path(checkpoint_path)
+
+    # Handle both single file and checkpoint directory
+    if checkpoint_path.is_file():
+        # Single .pt file - load directly
+        print("Loading from single checkpoint file...")
+        checkpoint_data = torch.load(checkpoint_path, map_location=device)
+
+        if 'config' in checkpoint_data:
+            config = GPTConfig(**checkpoint_data['config'])
+            model = GPT(config)
+            model.load_state_dict(checkpoint_data.get('model', checkpoint_data))
+        else:
+            # Old format - try to infer config
+            raise ValueError("Checkpoint file must contain 'config' key")
+    else:
+        # Checkpoint directory - use checkpoint manager
+        print("Loading from checkpoint directory...")
+        from nanochat.checkpoint_manager import load_checkpoint, find_last_step
+
+        step = find_last_step(checkpoint_path)
+        if step is None:
+            raise ValueError(f"No checkpoints found in {checkpoint_path}")
+
+        model_state, _, meta = load_checkpoint(checkpoint_path, step, device, load_optimizer=False)
+
+        config = GPTConfig(**meta['config'])
+        model = GPT(config)
+        model.load_state_dict(model_state)
+
     model = model.to(device)
     model.eval()
 

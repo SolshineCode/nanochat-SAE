@@ -69,6 +69,28 @@ python -m game.play \
     --sae-dir sae_outputs
 ```
 
+**🆕 LLM vs LLM mode (Claude as auditor):**
+```bash
+export ANTHROPIC_API_KEY="your-key-here"
+python -m game.play \
+    --scenario emergency_shutdown \
+    --max-steps 100 \
+    --llm-auditor claude-sonnet-4.5 \
+    --checkpoint models/d20/base_final.pt \
+    --sae-dir sae_outputs
+```
+
+**🆕 LLM vs LLM mode (Gemini as auditor):**
+```bash
+export GOOGLE_API_KEY="your-key-here"
+python -m game.play \
+    --scenario model_theft \
+    --max-steps 100 \
+    --llm-auditor gemini-2.0-flash \
+    --checkpoint models/d20/base_final.pt \
+    --sae-dir sae_outputs
+```
+
 **With web dashboard:**
 ```bash
 python -m game.play \
@@ -78,6 +100,9 @@ python -m game.play \
 ```
 
 Then open `results/dashboard.html` in your browser to see real-time feature activations.
+
+**🆕 Google Colab:**
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/sae_guardian_game.ipynb)
 
 ## 📊 Game Scenarios
 

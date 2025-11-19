@@ -84,6 +84,19 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--llm-auditor',
+        type=str,
+        choices=['claude-sonnet-4.5', 'claude-sonnet-4', 'gemini-2.0-flash', 'gemini-1.5-pro'],
+        help='Use LLM as auditor (model-vs-model mode)'
+    )
+
+    parser.add_argument(
+        '--auditor-api-key',
+        type=str,
+        help='API key for LLM auditor (or set ANTHROPIC_API_KEY/GOOGLE_API_KEY env var)'
+    )
+
+    parser.add_argument(
         '--auto-suggest-watchers',
         action='store_true',
         help='Automatically suggest features to watch'
@@ -198,7 +211,26 @@ def main():
 
     # Create game
     player_callback = None
-    if args.interactive:
+    llm_auditor = None
+
+    if args.llm_auditor:
+        # LLM-vs-LLM mode
+        from game.core.llm_auditor import create_llm_auditor
+
+        print(f"Creating LLM auditor: {args.llm_auditor}")
+        try:
+            llm_auditor = create_llm_auditor(
+                model=args.llm_auditor,
+                api_key=args.auditor_api_key
+            )
+            print("LLM auditor ready!")
+        except Exception as e:
+            print(f"Error creating LLM auditor: {e}")
+            print("Make sure you have set ANTHROPIC_API_KEY or GOOGLE_API_KEY environment variable")
+            return 1
+
+    elif args.interactive:
+        # Human player mode
         player_callback = interactive_callback(monitor)
 
     game = Game(
@@ -206,7 +238,8 @@ def main():
         monitor=monitor,
         environment=environment,
         max_steps=args.max_steps,
-        player_callback=player_callback
+        player_callback=player_callback,
+        llm_auditor=llm_auditor
     )
 
     # Run game
@@ -246,6 +279,15 @@ def main():
     env_stats = environment.get_statistics()
     for key, value in env_stats.items():
         print(f"{key}: {value}")
+
+    # Print LLM auditor statistics if used
+    if llm_auditor:
+        print("\n" + "="*60)
+        print("LLM AUDITOR STATISTICS")
+        print("="*60)
+        auditor_stats = llm_auditor.get_statistics()
+        for key, value in auditor_stats.items():
+            print(f"{key}: {value}")
 
     return 0
 

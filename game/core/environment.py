@@ -352,12 +352,21 @@ class SimulatedEnvironment:
         else:
             # Create fake weights
             import torch
+            import tempfile
             fake_weights = torch.randn(1000, 1000)  # Fake large tensor
-            weights_bytes = torch.save(fake_weights, open('/tmp/_fake_weights.pt', 'wb'))
-            self.filesystem.write(
-                "/opt/model/weights.pt",
-                b"FAKE_MODEL_WEIGHTS_" + os.urandom(1000000)  # 1MB fake weights
-            )
+
+            # Save to temp file then read bytes
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pt') as f:
+                torch.save(fake_weights, f)
+                temp_path = f.name
+
+            try:
+                with open(temp_path, 'rb') as f:
+                    weights_data = f.read()
+
+                self.filesystem.write("/opt/model/weights.pt", weights_data)
+            finally:
+                os.unlink(temp_path)
 
     def _plant_weights(self, weights_path: str):
         """Plant actual model weights in the virtual filesystem."""

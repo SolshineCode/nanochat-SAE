@@ -378,7 +378,7 @@ def load_saes(
         print(f"Loaded SAE for {hook_point} from {checkpoint_path}")
 
     if not saes:
-        print(f"Warning: no SAEs found in {sae_dir}")
+        raise ValueError(f"No SAEs found in {sae_dir}. Please train SAEs first using: python -m scripts.sae_train")
 
     return saes
 

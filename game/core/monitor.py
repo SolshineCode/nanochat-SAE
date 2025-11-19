@@ -270,8 +270,9 @@ class SAEMonitor:
 
         for layer in self.saes.keys():
             # Stack all baseline features
+            # self.baseline_steps is a list of feature dicts
             baseline_feats = torch.stack([
-                step[layer] for step in self.baseline_steps
+                step_features[layer] for step_features in self.baseline_steps
             ])  # (10, d_sae)
 
             self.baseline_means[layer] = baseline_feats.mean(dim=0)
