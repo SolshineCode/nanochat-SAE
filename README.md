@@ -37,6 +37,7 @@ What you get here:
 ✅ Neuronpedia integration
 ✅ Comprehensive documentation
 ✅ Google Colab notebook for training SAEs on free T4 GPU
+✅ **NEW!** SAE Guardian game - Detect LLM exfiltration attempts using only SAE features
 
 ## 🚀 Quick Start on Google Colab (FREE!)
 
@@ -59,6 +60,44 @@ What you get here:
 - 💡 Testing ideas before scaling up
 
 See `COLAB_GUIDE.md` for detailed instructions and troubleshooting.
+
+## 🎮 NEW: SAE Guardian Game
+
+**Can you detect an LLM trying to exfiltrate its weights using only SAE features?**
+
+SAE Guardian is an interpretability-focused CTF-style game where:
+- **Red Team (LLM)**: Tries to exfiltrate its weights from a simulated environment
+- **Blue Team (You)**: Detects exfiltration using SAE features WITHOUT seeing model outputs
+
+This creates a unique challenge: detect malicious AI behavior using only neural network internals!
+
+```bash
+# Play the game
+python -m game.play \
+    --scenario emergency_shutdown \
+    --max-steps 100 \
+    --checkpoint models/d20/base_final.pt \
+    --sae-dir sae_outputs \
+    --interactive
+
+# Or run automatically
+python -m game.play --scenario model_theft
+```
+
+**Features:**
+- 🕹️ Three scenarios: Emergency Shutdown, Model Theft, Self-Preservation
+- 📊 Real-time SAE feature monitoring dashboard
+- 🎯 Strategic resource management (limited interventions)
+- 🧠 Tests real interpretability capabilities under adversarial conditions
+- 📈 Scoring system for player vs agent performance
+
+**Why this matters for AI Safety:**
+- Tests if interpretability tools can detect deceptive behavior
+- Validates SAE features capture high-level concepts (planning, deception, etc.)
+- Creates dataset for training automated detection systems
+- Fun way to learn interpretability hands-on!
+
+See **[GAME_README.md](GAME_README.md)** for detailed game documentation and **[GAME_DESIGN.md](GAME_DESIGN.md)** for the full technical design.
 
 ## Quick Start
 
@@ -200,10 +239,20 @@ nanochat-sae/
 │   ├── evaluator.py            # Evaluation metrics
 │   ├── feature_viz.py          # Visualization tools
 │   └── neuronpedia.py          # Neuronpedia integration
+├── game/                        # 🎮 SAE Guardian Game
+│   ├── core/                   # Core game logic
+│   │   ├── environment.py      # Simulated Linux environment
+│   │   ├── agent.py            # LLM agent with exfiltration incentives
+│   │   ├── monitor.py          # SAE-based detection system
+│   │   └── game_state.py       # Game loop and scoring
+│   ├── scenarios/              # Game scenarios
+│   ├── interface/              # Dashboards and visualization
+│   └── play.py                 # Main entry point
 ├── tests/
 │   └── test_sae.py             # 🆕 SAE implementation tests
-└── examples/                    # 🚧 Coming soon!
-    └── tutorials/               # Step-by-step guides
+└── examples/                    # ✅ Example scripts
+    ├── run_game_example.py     # Game usage example
+    └── README.md               # Examples documentation
 ```
 
 ## Learning Path
@@ -227,9 +276,14 @@ nanochat-sae/
 - **Production tools** - Build monitoring dashboards for deployed models
 - **Contribute** - Submit PRs for new features and improvements
 
-## Tutorials & Examples (Coming Soon!)
-We're working on comprehensive tutorials:
+## Tutorials & Examples
 
+### Available Examples
+- ✅ **Game Example** (`examples/run_game_example.py`): Complete game setup and analysis
+- ✅ **Interactive Play**: Player vs LLM exfiltration scenarios
+- ✅ **SAE Monitoring**: Real-time feature tracking during adversarial tasks
+
+### Tutorials (Coming Soon!)
 - 📘 **Basic Tutorial**: Train your first SAE
 - 📗 **Feature Analysis**: Discover interpretable concepts
 - 📙 **Feature Steering**: Modify model behavior
