@@ -42,6 +42,8 @@ What you get here:
 
 **New!** Train SAEs on a pre-trained nanochat model using Google Colab's **free T4 GPU** in 1-2 hours:
 
+### Standard SAE Training
+
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_training.ipynb)
 
 **How to run:**
@@ -57,6 +59,33 @@ What you get here:
 - 🧪 Quick experiments with custom reference datasets
 - 📊 Analyzing features from pre-trained models
 - 💡 Testing ideas before scaling up
+
+### 🔍 Deception-Focused SAE Training with Auto-Labeling
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_deception_training.ipynb)
+
+**NEW!** Train SAEs using Anthropic's public datasets of LLM deceptive behavior to enable automatic feature labeling:
+
+**What's different:**
+- 📊 Uses **Anthropic's Alignment Faking, Sleeper Agents, and Agentic Misalignment** datasets
+- 🏷️ **Auto-labels SAE features** based on deception-relevant contexts
+- 🔬 Includes deception-specific evaluation metrics
+- 🎯 Tests if contextualized labeling makes SAEs more useful for deception detection
+- ⚖️ Compares features learned from deceptive vs. honest behavior
+
+**How to run:**
+1. Click the badge above to open in Colab
+2. Go to Runtime → Change runtime type → Select **T4 GPU**
+3. Run all cells - the notebook will automatically download Anthropic's datasets
+4. Upload a pre-trained checkpoint or point to one in Google Drive
+5. Train SAE with deception-labeled activations
+6. Explore auto-labeled features for deception detection!
+
+**Perfect for:**
+- 🛡️ Deception and misalignment detection research
+- 🔬 Studying how models represent deceptive behavior
+- 🏷️ Testing automatic feature labeling approaches
+- 📊 Comparing interpretability approaches with/without context labels
 
 See `COLAB_GUIDE.md` for detailed instructions and troubleshooting.
 
@@ -166,6 +195,17 @@ Example findings from SAE interpretability on small language models:
 - 🌍 **Entity features**: Activate on proper nouns, locations
 - 📚 **Syntax features**: Capture grammatical structures
 
+### 🔍 Deception Detection Use Cases
+
+Using the deception-focused training notebook, you can discover:
+
+- 🎭 **Deception features**: Activate when model generates misleading content
+- 🔒 **Alignment faking features**: Fire when model pretends to comply
+- 🚨 **Backdoor behavior features**: Detect conditional malicious behavior
+- ⚖️ **Honest vs. deceptive patterns**: Compare activation patterns
+- 🧠 **Self-awareness features**: Track when model discusses its own capabilities
+- 🛡️ **Safety bypass features**: Identify features related to bypassing safety measures
+
 Feature steering example:
 
 ```python
@@ -175,15 +215,24 @@ polite_output = interp_model.steer(
     feature_id=("blocks.15.hook_resid_post", 4232),
     strength=2.0  # 2x amplification
 )
+
+# Suppress a deception-related feature
+honest_output = interp_model.steer(
+    input_ids,
+    feature_id=("blocks.10.hook_resid_post", 1337),
+    strength=-3.0  # Strong suppression
+)
 ```
 
 ## Repository Structure
 
 ```
 nanochat-sae/
-├── README.md                    # This file
-├── speedrun.sh                  # Train nanochat model (original)
-├── nanochat/                    # Core nanochat implementation
+├── README.md                              # This file
+├── colab_sae_training.ipynb              # Standard SAE training notebook
+├── colab_sae_deception_training.ipynb    # 🆕 Deception-focused SAE training
+├── speedrun.sh                            # Train nanochat model (original)
+├── nanochat/                              # Core nanochat implementation
 ├── scripts/
 │   ├── base_train.py           # Nanochat pretraining
 │   ├── mid_train.py            # Nanochat midtraining
