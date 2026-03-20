@@ -453,7 +453,9 @@ If you use this SAE implementation in your research, please cite:
 
 Contributions are welcome! Areas for improvement:
 
-- [ ] Integration with actual nanochat training loop
+- [x] Integration with nanochat-d32 pre-trained model (1.88B params)
+- [x] Google Colab notebook with verified end-to-end pipeline
+- [x] Memory-efficient loading (mmap + bfloat16) for free tier T4 GPU
 - [ ] More sophisticated feature analysis tools
 - [ ] Multi-modal SAE support
 - [ ] Hierarchical SAEs

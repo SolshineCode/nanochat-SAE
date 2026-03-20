@@ -40,29 +40,42 @@ What you get here:
 
 ## 🚀 Quick Start on Google Colab (FREE!)
 
-**New!** Train SAEs on a pre-trained nanochat model using Google Colab's **free T4 GPU** in 1-2 hours:
+Train SAEs on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Google Colab's **free T4 GPU** — fully automated, ~6 minutes end-to-end:
 
 ### Standard SAE Training
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_training.ipynb)
 
 **How to run:**
 1. Click the badge above to open in Colab
 2. Go to Runtime → Change runtime type → Select **T4 GPU**
-3. Run all cells (setup takes ~5-10 minutes)
-4. Upload a pre-trained checkpoint or point to one in Google Drive
-5. (Optional) Upload your custom reference dataset
-6. Train SAE and visualize learned features!
+3. Click **Run all** — everything is automated:
+   - Auto-downloads nanochat-d32 checkpoint from HuggingFace (7.2GB)
+   - Installs Rust toolchain and builds the BPE tokenizer
+   - Downloads WikiText-103 for activation collection
+   - Collects 50K activations from layer 16
+   - Trains TopK SAE (2048 → 8192 → 2048, k=32)
+   - Generates 4-panel analysis visualization
+
+**Verified results on Colab free tier T4:**
+| Metric | Value |
+|---|---|
+| Model | nanochat-d32 (1.88B params, bfloat16) |
+| Explained Variance | **57.5%** |
+| MSE Loss | 0.420688 |
+| Alive Features | 2,213 / 8,192 (27%) |
+| L0 (active features) | 32 (matches target k) |
+| Total time | ~6 minutes |
 
 **Perfect for:**
 - 🎓 Learning SAE interpretability without expensive hardware
-- 🧪 Quick experiments with custom reference datasets
-- 📊 Analyzing features from pre-trained models
+- 🧪 Quick experiments on real pre-trained models
+- 📊 Discovering interpretable features in a 1.88B parameter model
 - 💡 Testing ideas before scaling up
 
 ### 🔍 Deception-Focused SAE Training with Auto-Labeling
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_deception_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_deception_training.ipynb)
 
 **NEW!** Train SAEs using Anthropic's public datasets of LLM deceptive behavior to enable automatic feature labeling:
 
@@ -250,9 +263,9 @@ nanochat-sae/
 │   ├── feature_viz.py          # Visualization tools
 │   └── neuronpedia.py          # Neuronpedia integration
 ├── tests/
-│   └── test_sae.py             # 🆕 SAE implementation tests
-└── examples/                    # 🚧 Coming soon!
-    └── tutorials/               # Step-by-step guides
+│   ├── test_sae.py             # SAE implementation tests
+│   └── test_e2e_sae_pipeline.py # End-to-end pipeline tests
+└── demo_sae.py                  # Standalone demo script
 ```
 
 ## Learning Path

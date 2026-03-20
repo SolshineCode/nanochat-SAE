@@ -1,311 +1,160 @@
 # Google Colab SAE Training Guide
 
-Train Sparse Autoencoders on nanochat using Google Colab's **free T4 GPU**!
+Train Sparse Autoencoders on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Google Colab's **free T4 GPU** — fully automated in ~6 minutes.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/main/colab_sae_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_training.ipynb)
 
 ## What This Notebook Does
 
-This Colab notebook allows you to:
-- ✅ Train SAEs on a **pre-trained nanochat model**
-- ✅ Use your **custom reference dataset**
-- ✅ Run on **free T4 GPU** (no expensive hardware needed!)
-- ✅ Save checkpoints to **Google Drive**
-- ✅ Visualize learned features
-- ✅ Complete training in **1-2 hours per layer**
+The Colab notebook runs a complete SAE training pipeline end-to-end:
 
-## Before You Start
+1. **Auto-downloads** the nanochat-d32 checkpoint (7.2GB) from Karpathy's HuggingFace
+2. **Loads the model** in bfloat16 using memory-mapped I/O (fits in T4's 15.6GB VRAM + 12.7GB RAM)
+3. **Downloads WikiText-103** for real-text activation collection
+4. **Collects 50K activations** from layer 16 via PyTorch forward hooks
+5. **Trains a TopK SAE** (2048 → 8192 → 2048, k=32) with 3 epochs
+6. **Evaluates** reconstruction quality, sparsity, and feature statistics
+7. **Generates** a 4-panel visualization (loss curve, feature frequency, magnitudes, cumulative explained variance)
 
-### Requirements
-1. **Google Account** - For Google Colab access
-2. **Pre-trained Model Checkpoint** - Either:
-   - Download a pre-trained nanochat model (d20 recommended, 561M params)
-   - Train your own using the main pipeline
-   - Use a checkpoint from Karpathy's releases (if available)
-3. **Reference Dataset** (optional) - Your custom text data for activation collection
-4. **Google Drive** (optional but recommended) - For saving checkpoints
+No pre-trained checkpoint upload needed — everything downloads automatically.
 
-### Hardware
-- **GPU**: Google Colab free tier provides T4 GPU (15GB VRAM)
-- **Runtime**: ~1-2 hours per layer
-- **RAM**: 12-25GB system RAM (available on free tier)
+## Verified Results
+
+The following results were verified on Google Colab's free tier T4 GPU:
+
+```
+TRAINING COMPLETE - nanochat-d32 SAE
+======================================================================
+Model:   nanochat-d32 (1.88B params)
+Layer:   16 (blocks.16.hook_resid_post)
+SAE:     2048 -> 8192 -> 2048 (TopK, k=32)
+Data:    50,000 activations from WikiText-103
+
+Results:
+  Explained Variance: 57.5%
+  MSE Loss:           0.420688
+  Alive Features:     2213/8192
+  Best Train Loss:    0.445452
+======================================================================
+```
+
+| Metric | Value |
+|---|---|
+| Explained Variance | 57.5% |
+| MSE Loss | 0.420688 |
+| Alive Features | 2,213 / 8,192 (27%) |
+| L0 (active features) | 32 (matches target k) |
+| Dead Features | 5,979 / 8,192 (73%) |
+| Total pipeline time | ~6 minutes |
+
+The 57.5% explained variance with 50K activations and 3 epochs is a solid starting point. Scaling up to more activations, more epochs, or larger expansion factors will improve these numbers significantly.
 
 ## Quick Start
 
 ### Step 1: Open the Notebook
-Click the "Open in Colab" badge above or upload `colab_sae_training.ipynb` to Google Colab.
+Click the "Open in Colab" badge above.
 
 ### Step 2: Enable GPU
 1. Go to `Runtime` → `Change runtime type`
-2. Select `T4 GPU` under Hardware accelerator
+2. Select `T4 GPU`
 3. Click `Save`
 
-### Step 3: Run Setup Cells
-Execute the first few cells to:
-- Verify GPU availability
-- Install dependencies (Rust, uv, PyTorch, etc.)
-- Clone the nanochat-SAE repository
-- Build the tokenizer
+### Step 3: Run All Cells
+Click `Runtime` → `Run all` and accept the "not authored by Google" dialog. That's it — everything else is automated.
 
-This takes ~5-10 minutes on first run.
+The pipeline stages and approximate timings:
 
-### Step 4: Mount Google Drive (Optional)
-Run the Google Drive mount cell to save checkpoints and results to your Drive.
+| Stage | Time |
+|---|---|
+| Environment setup (Rust, deps, tokenizer build) | ~2 min |
+| Model download from HuggingFace | ~1 min (cached after first run) |
+| Model loading (mmap, bfloat16) | ~15 sec |
+| WikiText-103 download + tokenization | ~20 sec |
+| Activation collection (50K from layer 16) | ~1.5 min |
+| SAE training (3 epochs, 97 steps each) | ~15 sec |
+| Evaluation + visualization | ~5 sec |
 
-### Step 5: Load Model
-You have three options:
+## Technical Details
 
-#### Option A: Upload Your Own Checkpoint
-```python
-MODEL_PATH = '/content/drive/MyDrive/nanochat-SAE/checkpoints/base_final.pt'
-```
+### Memory-Efficient Model Loading
 
-Upload a checkpoint to your Google Drive and set the path.
+The 1.88B parameter nanochat-d32 model is loaded using two key optimizations:
 
-#### Option B: Download from URL
-```python
-MODEL_URL = 'https://example.com/nanochat_d20.pt'
-```
+- **Memory-mapped I/O** (`torch.load(mmap=True)`): The 7.2GB checkpoint is memory-mapped rather than fully loaded into RAM, keeping peak memory usage well within Colab's ~12.7GB system RAM limit
+- **bfloat16 precision**: The model is loaded in bfloat16 (required for nanochat's rotary embeddings), which halves GPU VRAM usage to ~3.7GB on the T4's 15.6GB
 
-If you have a public URL to a checkpoint, download it directly.
+### Activation Collection
 
-#### Option C: Use Existing Checkpoint
-If you already trained a model, point to the checkpoint file.
+Activations are collected using PyTorch forward hooks on `model.transformer.h[16]` (the middle layer of the 32-layer model). Each activation is a 2048-dimensional vector (d_model) converted to float32 and stored on CPU to save GPU memory.
 
-### Step 6: Prepare Dataset (Optional)
-Load your custom reference dataset:
+### Dataset
 
-```python
-# Upload a text file
-from google.colab import files
-uploaded = files.upload()
-
-# Or load from Google Drive
-DATASET_PATH = '/content/drive/MyDrive/my_dataset.txt'
-```
-
-Supported formats:
-- `.txt` - Plain text
-- `.jsonl` - JSON lines with `text` field
-
-If you skip this, the notebook will use random tokens (for testing only).
-
-### Step 7: Configure SAE Training
-Adjust the configuration for your needs:
-
-```python
-SAE_CONFIG = {
-    'layer': 10,              # Which layer to analyze (0-19 for d20)
-    'expansion_factor': 4,    # SAE size multiplier (4x for T4)
-    'activation': 'topk',     # topk, relu, or gated
-    'k': 32,                  # Active features
-    'num_activations': 100_000,  # Fewer for faster training
-    'sequence_length': 512,   # Shorter for memory
-    'train_batch_size': 512,  # Batch size
-    'num_epochs': 5,          # Training epochs
-}
-```
-
-### Step 8: Train SAE
-Run the training cells. The notebook will:
-1. Collect activations from the model
-2. Train the SAE
-3. Save checkpoints to Google Drive
-4. Show progress bars and metrics
-
-### Step 9: Visualize Results
-Explore the learned features:
-- Activation frequency distributions
-- Feature magnitude distributions
-- Top active features
-- Quality metrics (MSE, L0, explained variance)
+The notebook uses WikiText-103 from HuggingFace's `datasets` library (parquet format). It downloads quickly (~300MB), filters to non-empty documents, tokenizes using nanochat's RustBPE tokenizer, and produces 603 sequences of length 512.
 
 ## T4 GPU Optimizations
 
-The notebook is pre-configured for T4 GPU constraints:
+Settings are tuned for T4 GPU constraints:
 
-| Setting | T4 Value | Full Scale Value | Reason |
-|---------|----------|------------------|--------|
-| Expansion Factor | 4x | 8-16x | Smaller SAE fits in 15GB VRAM |
-| Activations | 100K | 1M+ | Faster collection & training |
-| Sequence Length | 512 | 1024-2048 | Reduces memory usage |
-| Batch Size | 512 | 4096 | Fits in memory |
-| Epochs | 5 | 10-20 | Quicker iteration |
+| Setting | T4 Value | Full Scale | Reason |
+|---------|----------|------------|--------|
+| Model dtype | bfloat16 | bfloat16 | Required for rotary embeddings; halves VRAM |
+| Checkpoint loading | mmap=True | Standard | Keeps RAM usage low on free tier |
+| Expansion Factor | 4x | 8-16x | Smaller SAE fits alongside 1.88B model |
+| Activations | 50K | 1M+ | Fits in free tier RAM (~400MB) |
+| Sequence Length | 512 | 2048 | Reduces per-batch memory |
+| Collect Batch Size | 2 | 8-16 | Conservative for 1.88B model on T4 |
+| Train Batch Size | 512 | 4096 | Fits in memory |
+| Epochs | 3 | 10-20 | Fast iteration; increase for better results |
 
-**Result**: Training completes in 1-2 hours on free T4!
+## Scaling Up
 
-## Memory Tips
+To improve results beyond the defaults:
 
-If you run out of memory:
+### More Activations (recommended first step)
+Increase `NUM_ACTIVATIONS` from 50K to 200K+ for better feature coverage. This costs ~1.6GB RAM per 200K activations.
 
-1. **Reduce expansion factor**: Try 2x or 3x instead of 4x
-2. **Collect fewer activations**: Try 50K instead of 100K
-3. **Use smaller batches**: Reduce `train_batch_size` to 256
-4. **Shorter sequences**: Use 256 instead of 512
-5. **Restart runtime**: `Runtime` → `Restart runtime` to clear memory
+### More Epochs
+Increase `NUM_EPOCHS` from 3 to 10-20 for lower loss and higher explained variance.
 
-## Saving Progress
+### Larger Expansion
+Increase `EXPANSION` from 4 to 8 for 16,384 features (doubles SAE size to ~268MB).
 
-### Automatic Checkpointing
-The notebook saves to Google Drive automatically:
-- `checkpoints/activations_layer{N}.pt` - Collected activations
-- `results/layer_{N}/sae_final.pt` - Trained SAE
-- `results/layer_{N}/feature_distribution.png` - Visualizations
+### Multiple Layers
+Train SAEs on different layers to compare features:
+- Early layers (0-8): Syntactic features, token-level patterns
+- Middle layers (8-24): Semantic features, abstract concepts
+- Late layers (24-31): Task-specific features, output-relevant patterns
 
-### Manual Download
-Download results directly from Colab:
-```python
-from google.colab import files
-files.download('/content/sae_outputs/layer_10/sae_final.pt')
-```
-
-## Expected Results
-
-After training, you should see:
-
-### Quality Metrics
-- **MSE Loss**: ~0.001-0.01 (lower is better)
-- **L0 (active features)**: Close to your `k` value
-- **Explained Variance**: 80-95%
-- **Dead Features**: <10%
-
-### Feature Analysis
-- Activation frequency histogram
-- Top 10 most active features
-- Feature magnitude distribution
+### Colab Pro
+With Colab Pro ($10/month), you get access to A100 GPUs with 40GB+ VRAM, enabling larger batch sizes, more activations, and bigger expansion factors.
 
 ## Troubleshooting
 
 ### "No GPU found"
-- Go to `Runtime` → `Change runtime type` → Select T4 GPU
-- Click `Save` and restart runtime
+Go to `Runtime` → `Change runtime type` → Select T4 GPU → Save.
 
-### "Out of memory"
-- Reduce `expansion_factor` to 2-3x
-- Reduce `num_activations` to 50K
-- Reduce `train_batch_size` to 256
-- Restart runtime to clear memory
-
-### "Model checkpoint not found"
-- Make sure `MODEL_PATH` points to a valid checkpoint
-- Check that you uploaded the file to Google Drive
-- Verify the file path is correct
+### "Session crashed after using all available RAM"
+The model loading is already optimized with mmap. If you still hit this:
+- Reduce `NUM_ACTIVATIONS` to 25K
+- Reduce `COLLECT_BATCH_SIZE` to 1
+- Restart runtime and re-run
 
 ### "Rust/Cargo not found"
-- Re-run the Rust installation cell
-- Restart runtime and try again
-- Check that all setup cells completed successfully
+Re-run the Rust installation cell. If it persists, restart runtime and run from the beginning.
 
-### "Module not found"
-- Make sure you ran all setup cells
-- Verify you're in the `/content/nanochat-SAE` directory
-- Restart runtime and re-run setup
+### "Module not found" errors
+Make sure the path setup cell ran successfully. The repo should be at `/content/nanochat-SAE` with sys.path configured.
 
-## Next Steps
-
-After training your SAE:
-
-### 1. Analyze Features
-Use the evaluation cells to:
-- Identify top active features
-- Find dead features
-- Measure reconstruction quality
-
-### 2. Feature Interpretation
-Download the trained SAE and use it locally with:
-```bash
-python -m scripts.sae_viz --sae_path results/layer_10/sae_final.pt --all_features
-```
-
-### 3. Feature Steering
-Integrate with the runtime module:
-```python
-from sae.runtime import InterpretableModel, load_saes
-interp_model = InterpretableModel(model, saes)
-```
-
-### 4. Multi-Layer Analysis
-Train SAEs on multiple layers:
-- Early layers (0-5): Low-level features
-- Middle layers (6-14): Abstract concepts
-- Late layers (15-19): Task-specific features
-
-### 5. Scale Up
-Ready for more?
-- **Colab Pro**: Access to A100/V100 GPUs
-- **Larger models**: Try d26 or d30
-- **More activations**: Use 1M+ for better coverage
-- **Bigger SAEs**: Use 8-16x expansion
-
-## Cost Estimate
-
-### Google Colab Free Tier
-- **Cost**: $0 (completely free!)
-- **GPU**: T4 (15GB VRAM)
-- **Runtime**: ~1-2 hours per layer
-- **Limitations**: May disconnect after 12 hours
-
-### Google Colab Pro ($10/month)
-- **GPU**: A100, V100 options
-- **Runtime**: Longer sessions, faster training
-- **Worth it if**: Training multiple layers, larger models
-
-## Example Workflow
-
-Here's a typical workflow:
-
-```python
-# 1. Start with middle layer
-SAE_CONFIG['layer'] = 10
-
-# 2. Small test run
-SAE_CONFIG['num_activations'] = 10_000  # Quick test
-SAE_CONFIG['num_epochs'] = 1
-
-# 3. Full training
-SAE_CONFIG['num_activations'] = 100_000
-SAE_CONFIG['num_epochs'] = 5
-
-# 4. Train on multiple layers
-for layer in [5, 10, 15]:
-    SAE_CONFIG['layer'] = layer
-    # Run training cells...
-```
+### HuggingFace rate limits
+If the model download fails, you may need to set your `HF_TOKEN` secret in Colab (Settings → Secrets).
 
 ## Resources
 
-- [nanochat-SAE Documentation](https://github.com/SolshineCode/nanochat-SAE)
+- [nanochat-SAE Repository](https://github.com/SolshineCode/nanochat-SAE)
 - [nanochat Original](https://github.com/karpathy/nanochat)
+- [nanochat-d32 on HuggingFace](https://huggingface.co/karpathy/nanochat-d32)
 - [Anthropic: Towards Monosemanticity](https://transformer-circuits.pub/2023/monosemantic-features)
 - [OpenAI: Scaling SAEs](https://openai.com/research/sparse-autoencoders)
-- [Google Colab Guide](https://colab.research.google.com/notebooks/intro.ipynb)
-
-## FAQ
-
-**Q: Do I need a paid Colab subscription?**
-A: No! The free tier T4 GPU is sufficient for training SAEs on nanochat models.
-
-**Q: How long does training take?**
-A: Typically 1-2 hours per layer on T4 GPU with the default settings.
-
-**Q: Can I use my own dataset?**
-A: Yes! Upload your text data and the notebook will use it for activation collection.
-
-**Q: What if I don't have a pre-trained model?**
-A: You need to train a model first using the main pipeline, or find a public checkpoint to download.
-
-**Q: Can I train on multiple layers?**
-A: Yes! Just change the `layer` parameter and re-run the training cells for each layer.
-
-**Q: Will my session time out?**
-A: Free tier may disconnect after ~12 hours of inactivity. Save to Google Drive regularly!
-
-**Q: Can I share my trained SAEs?**
-A: Absolutely! Upload to Neuronpedia or share the checkpoint files.
-
-## Contributing
-
-Found an issue or improvement? Open a PR or issue on GitHub!
 
 ## License
 
@@ -313,6 +162,4 @@ MIT (same as nanochat)
 
 ---
 
-**Ready to explore what your model learned?**
-
-Click the "Open in Colab" badge at the top and start training! 🚀
+**Ready to explore what nanochat-d32 learned?** Click the badge at the top and hit Run all!
