@@ -53,7 +53,10 @@ class InterpretableModel(nn.Module):
         """
         super().__init__()
         self.model = model
-        self.saes = nn.ModuleDict(saes)
+        # nn.ModuleDict doesn't allow dots in keys, so store SAEs in a plain
+        # dict and register them via nn.ModuleList for proper parameter tracking
+        self.saes: Dict[str, BaseSAE] = dict(saes)
+        self._sae_modules = nn.ModuleList(list(saes.values()))
 
         if device is None:
             device = str(model.get_device())

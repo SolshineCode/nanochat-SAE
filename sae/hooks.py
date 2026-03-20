@@ -120,36 +120,44 @@ class ActivationCollector:
     def _get_module_from_hook_point(self, hook_point: str) -> nn.Module:
         """Get module from hook point string.
 
+        Supports two formats:
+        - Nanochat-style: "blocks.10.hook_resid_post", "blocks.5.attn", "blocks.5.mlp"
+        - Generic PyTorch: any valid module path (e.g., "1" for Sequential, "layer1.conv")
+
         Args:
-            hook_point: Hook point string (e.g., "blocks.10.hook_resid_post")
+            hook_point: Hook point string
 
         Returns:
             Module to attach hook to
         """
-        # For nanochat, we need to hook at the Block level
-        # Hook points look like: "blocks.{i}.hook_{type}"
-        # We'll hook the entire block and capture the residual stream
-
         parts = hook_point.split(".")
-        if parts[0] != "blocks":
-            raise ValueError(f"Invalid hook point: {hook_point}. Must start with 'blocks.'")
 
-        layer_idx = int(parts[1])
-        hook_type = ".".join(parts[2:])  # e.g., "hook_resid_post", "attn.hook_result"
+        # Nanochat-style hook points
+        if parts[0] == "blocks" and hasattr(self.model, "transformer"):
+            layer_idx = int(parts[1])
+            hook_type = ".".join(parts[2:])
 
-        # Get the block
-        block = self.model.transformer.h[layer_idx]
+            block = self.model.transformer.h[layer_idx]
 
-        # For now, we'll just hook the entire block's output (residual stream)
-        # More sophisticated hooks can be added later
-        if "hook_resid" in hook_type:
-            return block
-        elif "attn" in hook_type:
-            return block.attn
-        elif "mlp" in hook_type:
-            return block.mlp
-        else:
-            raise ValueError(f"Unknown hook type: {hook_type}")
+            if "hook_resid" in hook_type:
+                return block
+            elif "attn" in hook_type:
+                return block.attn
+            elif "mlp" in hook_type:
+                return block.mlp
+            else:
+                raise ValueError(f"Unknown hook type: {hook_type}")
+
+        # Generic module path fallback (works with any nn.Module)
+        module = self.model
+        for part in parts:
+            if part.isdigit():
+                module = module[int(part)]
+            elif hasattr(module, part):
+                module = getattr(module, part)
+            else:
+                raise ValueError(f"Cannot resolve hook point '{hook_point}': module has no attribute '{part}'")
+        return module
 
     def _remove_hooks(self):
         """Remove all registered hooks."""
