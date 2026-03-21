@@ -2,7 +2,7 @@
 
 Train Sparse Autoencoders on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Google Colab's **free T4 GPU** — fully automated in ~6 minutes.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/master/colab_sae_training.ipynb)
 
 ## What This Notebook Does
 

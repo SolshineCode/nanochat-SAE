@@ -44,7 +44,7 @@ Train SAEs on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Googl
 
 ### Standard SAE Training
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/master/colab_sae_training.ipynb)
 
 **How to run:**
 1. Click the badge above to open in Colab
@@ -75,7 +75,7 @@ Train SAEs on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Googl
 
 ### 🔍 Deception-Focused SAE Training with Auto-Labeling
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/claude%2Fnanochat-sae-interpretability-011CUT2TocZpFerXthoW9LMf/colab_sae_deception_training.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/master/colab_sae_deception_training.ipynb)
 
 **NEW!** Train SAEs using Anthropic's public datasets of LLM deceptive behavior to enable automatic feature labeling:
 
