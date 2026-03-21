@@ -109,8 +109,8 @@ This repo includes the full nanochat training pipeline:
 
 ```bash
 # Clone this repo
-git clone https://github.com/SolshineCode/nanochat-sae
-cd nanochat-sae
+git clone https://github.com/SolshineCode/nanochat-SAE.git
+cd nanochat-SAE
 
 # Run the nanochat speedrun (trains a model in ~4 hours on 8xH100)
 bash speedrun.sh

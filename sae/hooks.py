@@ -13,6 +13,50 @@ import numpy as np
 from tqdm import tqdm
 
 
+def get_module_from_hook_point(model: nn.Module, hook_point: str) -> nn.Module:
+    """Get module from hook point string.
+
+    Supports two formats:
+    - Nanochat-style: "blocks.10.hook_resid_post", "blocks.5.attn", "blocks.5.mlp"
+    - Generic PyTorch: any valid module path (e.g., "1" for Sequential, "layer1.conv")
+
+    Args:
+        model: The model to resolve the hook point against
+        hook_point: Hook point string
+
+    Returns:
+        Module to attach hook to
+    """
+    parts = hook_point.split(".")
+
+    # Nanochat-style hook points
+    if parts[0] == "blocks" and hasattr(model, "transformer"):
+        layer_idx = int(parts[1])
+        hook_type = ".".join(parts[2:])
+
+        block = model.transformer.h[layer_idx]
+
+        if "hook_resid" in hook_type:
+            return block
+        elif "attn" in hook_type:
+            return block.attn
+        elif "mlp" in hook_type:
+            return block.mlp
+        else:
+            raise ValueError(f"Unknown hook type: {hook_type}")
+
+    # Generic module path fallback (works with any nn.Module)
+    module = model
+    for part in parts:
+        if part.isdigit():
+            module = module[int(part)]
+        elif hasattr(module, part):
+            module = getattr(module, part)
+        else:
+            raise ValueError(f"Cannot resolve hook point '{hook_point}': module has no attribute '{part}'")
+    return module
+
+
 class ActivationCollector:
     """Collects activations from specified hook points in a model.
 
@@ -118,46 +162,8 @@ class ActivationCollector:
             self.handles.append(handle)
 
     def _get_module_from_hook_point(self, hook_point: str) -> nn.Module:
-        """Get module from hook point string.
-
-        Supports two formats:
-        - Nanochat-style: "blocks.10.hook_resid_post", "blocks.5.attn", "blocks.5.mlp"
-        - Generic PyTorch: any valid module path (e.g., "1" for Sequential, "layer1.conv")
-
-        Args:
-            hook_point: Hook point string
-
-        Returns:
-            Module to attach hook to
-        """
-        parts = hook_point.split(".")
-
-        # Nanochat-style hook points
-        if parts[0] == "blocks" and hasattr(self.model, "transformer"):
-            layer_idx = int(parts[1])
-            hook_type = ".".join(parts[2:])
-
-            block = self.model.transformer.h[layer_idx]
-
-            if "hook_resid" in hook_type:
-                return block
-            elif "attn" in hook_type:
-                return block.attn
-            elif "mlp" in hook_type:
-                return block.mlp
-            else:
-                raise ValueError(f"Unknown hook type: {hook_type}")
-
-        # Generic module path fallback (works with any nn.Module)
-        module = self.model
-        for part in parts:
-            if part.isdigit():
-                module = module[int(part)]
-            elif hasattr(module, part):
-                module = getattr(module, part)
-            else:
-                raise ValueError(f"Cannot resolve hook point '{hook_point}': module has no attribute '{part}'")
-        return module
+        """Get module from hook point string. Delegates to shared utility."""
+        return get_module_from_hook_point(self.model, hook_point)
 
     def _remove_hooks(self):
         """Remove all registered hooks."""

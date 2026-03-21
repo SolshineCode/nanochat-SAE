@@ -202,11 +202,9 @@ class NeuronpediaClient:
             Feature description if available, None otherwise
         """
         if not self.available:
-            return None
+            raise RuntimeError("neuronpedia package not installed. Install with: pip install neuronpedia")
 
-        # Placeholder implementation
-        # Real implementation would make API call to Neuronpedia
-        print(f"Getting description for {self.model_name}-{self.model_version}/{hook_point}/feature_{feature_idx}")
+        # Placeholder — real implementation would call Neuronpedia API
         return None
 
     def get_feature_metadata(
@@ -224,9 +222,9 @@ class NeuronpediaClient:
             Feature metadata if available, None otherwise
         """
         if not self.available:
-            return None
+            raise RuntimeError("neuronpedia package not installed. Install with: pip install neuronpedia")
 
-        # Placeholder implementation
+        # Placeholder — real implementation would call Neuronpedia API
         return None
 
     def search_features(
@@ -246,10 +244,9 @@ class NeuronpediaClient:
             List of matching features
         """
         if not self.available:
-            return []
+            raise RuntimeError("neuronpedia package not installed. Install with: pip install neuronpedia")
 
-        # Placeholder implementation
-        print(f"Searching for: {query}")
+        # Placeholder — real implementation would call Neuronpedia API
         return []
 
 

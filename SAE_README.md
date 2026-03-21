@@ -438,7 +438,7 @@ If you use this SAE implementation in your research, please cite:
   author = {Nanochat Contributors},
   title = {SAE-Based Interpretability for Nanochat},
   year = {2025},
-  url = {https://github.com/karpathy/nanochat}
+  url = {https://github.com/SolshineCode/nanochat-SAE}
 }
 ```
 

@@ -13,6 +13,7 @@ import json
 
 from sae.config import SAEConfig
 from sae.models import BaseSAE, create_sae
+from sae.hooks import get_module_from_hook_point
 
 
 class InterpretableModel(nn.Module):
@@ -292,31 +293,8 @@ class InterpretableModel(nn.Module):
         return output
 
     def _get_module_from_hook_point(self, hook_point: str) -> nn.Module:
-        """Get module from hook point string.
-
-        Args:
-            hook_point: Hook point (e.g., "blocks.10.hook_resid_post")
-
-        Returns:
-            Module to attach hook to
-        """
-        parts = hook_point.split(".")
-        if parts[0] != "blocks":
-            raise ValueError(f"Invalid hook point: {hook_point}")
-
-        layer_idx = int(parts[1])
-        hook_type = ".".join(parts[2:])
-
-        block = self.model.transformer.h[layer_idx]
-
-        if "hook_resid" in hook_type:
-            return block
-        elif "attn" in hook_type:
-            return block.attn
-        elif "mlp" in hook_type:
-            return block.mlp
-        else:
-            raise ValueError(f"Unknown hook type: {hook_type}")
+        """Get module from hook point string. Delegates to shared utility."""
+        return get_module_from_hook_point(self.model, hook_point)
 
 
 def load_saes(
