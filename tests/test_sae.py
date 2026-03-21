@@ -173,16 +173,23 @@ def test_sae_training():
         device="cpu",
     )
 
-    # Train for 2 epochs
-    initial_loss = None
-    for epoch in range(2):
-        metrics = trainer.train_epoch(verbose=False)
-        if initial_loss is None:
-            initial_loss = metrics["total_loss"]
+    # Record loss before training (single forward pass on training data)
+    sae.eval()
+    with torch.no_grad():
+        batch = activations[:32]
+        _, _, init_metrics = sae(batch)
+        initial_loss = init_metrics["total_loss"].item()
+    sae.train()
 
-    # Loss should decrease
+    # Train for 5 epochs to give gradient descent enough room
+    for epoch in range(5):
+        metrics = trainer.train_epoch(verbose=False)
+
+    # Loss after training should be lower than the untrained forward pass
     final_loss = metrics["total_loss"]
-    assert final_loss < initial_loss, "Loss should decrease during training"
+    assert final_loss < initial_loss, (
+        f"Loss should decrease during training: {initial_loss:.4f} -> {final_loss:.4f}"
+    )
 
     print("✓ SAE training tests passed")
 

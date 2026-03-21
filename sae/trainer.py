@@ -280,10 +280,10 @@ class SAETrainer:
         if num_dead > 0:
             print(f"\nResampling {num_dead} dead latents (threshold: {self.config.dead_latent_threshold})")
 
-            # Reinitialize dead latent weights
+            # Reinitialize dead latent weights randomly (kaiming uniform).
+            # A more sophisticated approach would sample from high-loss inputs
+            # to give resampled features a head start toward useful directions.
             with torch.no_grad():
-                # Sample from active latents with high loss
-                # For simplicity, just reinitialize randomly
                 dead_indices = torch.where(dead_mask)[0]
 
                 for idx in dead_indices:
