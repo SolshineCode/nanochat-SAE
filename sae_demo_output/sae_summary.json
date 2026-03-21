@@ -1,0 +1,109 @@
+{
+  "hook_point": "blocks.3.hook_resid_post",
+  "d_in": 128,
+  "d_sae": 1024,
+  "activation_type": "topk",
+  "expansion_factor": 8.0,
+  "top_features": [
+    {
+      "feature_idx": 231,
+      "activation_frequency": 0.0560000017285347,
+      "mean_when_active": 0.8041557669639587
+    },
+    {
+      "feature_idx": 352,
+      "activation_frequency": 0.05400000140070915,
+      "mean_when_active": 0.8482232093811035
+    },
+    {
+      "feature_idx": 905,
+      "activation_frequency": 0.04800000041723251,
+      "mean_when_active": 0.8479403853416443
+    },
+    {
+      "feature_idx": 502,
+      "activation_frequency": 0.0430000014603138,
+      "mean_when_active": 0.869376540184021
+    },
+    {
+      "feature_idx": 662,
+      "activation_frequency": 0.03999999910593033,
+      "mean_when_active": 0.8213502764701843
+    },
+    {
+      "feature_idx": 908,
+      "activation_frequency": 0.039000000804662704,
+      "mean_when_active": 0.7951086163520813
+    },
+    {
+      "feature_idx": 589,
+      "activation_frequency": 0.03799999877810478,
+      "mean_when_active": 0.8760428428649902
+    },
+    {
+      "feature_idx": 224,
+      "activation_frequency": 0.03799999877810478,
+      "mean_when_active": 0.8329841494560242
+    },
+    {
+      "feature_idx": 477,
+      "activation_frequency": 0.03700000047683716,
+      "mean_when_active": 0.7848879098892212
+    },
+    {
+      "feature_idx": 232,
+      "activation_frequency": 0.03700000047683716,
+      "mean_when_active": 0.7962213754653931
+    },
+    {
+      "feature_idx": 633,
+      "activation_frequency": 0.03700000047683716,
+      "mean_when_active": 0.7962067723274231
+    },
+    {
+      "feature_idx": 688,
+      "activation_frequency": 0.035999998450279236,
+      "mean_when_active": 0.7918739318847656
+    },
+    {
+      "feature_idx": 779,
+      "activation_frequency": 0.035999998450279236,
+      "mean_when_active": 0.8369340896606445
+    },
+    {
+      "feature_idx": 107,
+      "activation_frequency": 0.035999998450279236,
+      "mean_when_active": 0.8161661624908447
+    },
+    {
+      "feature_idx": 824,
+      "activation_frequency": 0.03500000014901161,
+      "mean_when_active": 0.8350425362586975
+    },
+    {
+      "feature_idx": 532,
+      "activation_frequency": 0.03500000014901161,
+      "mean_when_active": 0.8683019280433655
+    },
+    {
+      "feature_idx": 357,
+      "activation_frequency": 0.03400000184774399,
+      "mean_when_active": 0.843188464641571
+    },
+    {
+      "feature_idx": 345,
+      "activation_frequency": 0.03400000184774399,
+      "mean_when_active": 0.8717321157455444
+    },
+    {
+      "feature_idx": 444,
+      "activation_frequency": 0.03400000184774399,
+      "mean_when_active": 0.7874059677124023
+    },
+    {
+      "feature_idx": 731,
+      "activation_frequency": 0.03400000184774399,
+      "mean_when_active": 0.9272551536560059
+    }
+  ]
+}
