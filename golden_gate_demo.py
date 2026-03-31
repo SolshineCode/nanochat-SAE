@@ -346,7 +346,7 @@ for strength in strengths:
 
     steered_probs = F.softmax(steered_logits[:, -1, :], dim=-1)
     diff = (steered_logits - baseline_logits).abs()
-    top_tok = steered_probs[:, :].argmax(dim=-1).item()
+    top_tok = steered_probs.argmax().item()
     top_prob = steered_probs.max().item()
 
     marker = ""
@@ -395,10 +395,34 @@ print()
 info(f"STEERED (feature #{golden_feature} at 10x) -- same input:")
 
 with torch.no_grad():
-    # We need to manually steer and track features
+    # Steer and track features simultaneously using a manual hook
     steering_config = {hook_point: (golden_feature, 10.0)}
+    steered_features_storage = {}
     with interp_model.steering_enabled(steering_config):
+        # Attach a tracking hook alongside the steering hook
+        from sae.hooks import get_module_from_hook_point
+        module = get_module_from_hook_point(interp_model.model, hook_point)
+
+        def capture_steered_features(mod, inp, output):
+            activation = output[0] if isinstance(output, tuple) else output
+            if activation.ndim == 3:
+                activation = activation.reshape(-1, activation.shape[-1])
+            steered_features_storage[hook_point] = sae.get_feature_activations(activation)
+
+        handle = module.register_forward_hook(capture_steered_features)
         interp_model.model(test_tokens)
+        handle.remove()
+
+if hook_point in steered_features_storage:
+    steered_feats = steered_features_storage[hook_point]
+    for pos in range(min(5, steered_feats.shape[0])):
+        active = torch.nonzero(steered_feats[pos]).squeeze(-1)
+        vals = steered_feats[pos, active]
+        top3 = vals.argsort(descending=True)[:3]
+        feat_strs = [f"#{active[j].item()}({vals[j]:.2f})" for j in top3]
+        is_golden = any(active[j].item() == golden_feature for j in top3)
+        marker = " *GOLDEN*" if is_golden else ""
+        print(f"    Pos {pos}: {', '.join(feat_strs)}{marker}")
 
 explain("""\
 Notice how steering changes the probability distribution over next
