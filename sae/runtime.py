@@ -106,6 +106,11 @@ class InterpretableModel(nn.Module):
 
             # Create hook function
             def make_hook(hp, sae_model):
+                # Capture SAE weight dtype once at hook creation; the base
+                # model typically runs in bfloat16 while SAE weights are
+                # float32, so activations need to be cast before the matmul.
+                sae_dtype = sae_model.W_enc.dtype
+
                 def hook_fn(module, input, output):
                     # Get activation
                     if isinstance(output, tuple):
@@ -121,6 +126,9 @@ class InterpretableModel(nn.Module):
                         activation_flat = activation.reshape(B * T, D)
                     else:
                         activation_flat = activation
+
+                    # Cast to SAE weight dtype (e.g. bf16 -> fp32).
+                    activation_flat = activation_flat.to(sae_dtype)
 
                     with torch.no_grad():
                         features = sae_model.get_feature_activations(activation_flat)
@@ -178,6 +186,11 @@ class InterpretableModel(nn.Module):
             sae = self.saes[hook_point]
 
             def make_steering_hook(sae_model, feat_idx, steer_strength):
+                # Capture SAE weight dtype once at hook creation; the base
+                # model typically runs in bfloat16 while SAE weights are
+                # float32, so activations need to be cast before the matmul.
+                sae_dtype = sae_model.W_enc.dtype
+
                 def hook_fn(module, input, output):
                     # Get activation
                     if isinstance(output, tuple):
@@ -189,11 +202,15 @@ class InterpretableModel(nn.Module):
 
                     # Reshape if needed
                     original_shape = activation.shape
+                    original_dtype = activation.dtype
                     if activation.ndim == 3:
                         B, T, D = activation.shape
                         activation = activation.reshape(B * T, D)
                     else:
                         B, T, D = None, None, None
+
+                    # Cast to SAE weight dtype (e.g. bf16 -> fp32).
+                    activation = activation.to(sae_dtype)
 
                     # Get current features
                     with torch.no_grad():
@@ -204,6 +221,10 @@ class InterpretableModel(nn.Module):
 
                         # Reconstruct with modified features
                         steered_activation = sae_model.decode(features)
+
+                    # Cast back to original dtype so the residual stream
+                    # stays in the model's working precision (e.g. bfloat16).
+                    steered_activation = steered_activation.to(original_dtype)
 
                     # Reshape back
                     if B is not None and T is not None:
