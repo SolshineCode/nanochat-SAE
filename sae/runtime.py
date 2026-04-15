@@ -122,6 +122,11 @@ class InterpretableModel(nn.Module):
                     else:
                         activation_flat = activation
 
+                    # Cast to float32 to match SAE weight dtype (base model
+                    # typically runs in bfloat16, but SAE weights are float32).
+                    sae_dtype = sae_model.W_enc.dtype
+                    activation_flat = activation_flat.to(sae_dtype)
+
                     with torch.no_grad():
                         features = sae_model.get_feature_activations(activation_flat)
 
@@ -189,11 +194,17 @@ class InterpretableModel(nn.Module):
 
                     # Reshape if needed
                     original_shape = activation.shape
+                    original_dtype = activation.dtype
                     if activation.ndim == 3:
                         B, T, D = activation.shape
                         activation = activation.reshape(B * T, D)
                     else:
                         B, T, D = None, None, None
+
+                    # Cast to float32 to match SAE weight dtype (base model
+                    # typically runs in bfloat16, but SAE weights are float32).
+                    sae_dtype = sae_model.W_enc.dtype
+                    activation = activation.to(sae_dtype)
 
                     # Get current features
                     with torch.no_grad():
@@ -204,6 +215,10 @@ class InterpretableModel(nn.Module):
 
                         # Reconstruct with modified features
                         steered_activation = sae_model.decode(features)
+
+                    # Cast back to original dtype so the residual stream
+                    # stays in the model's working precision (e.g. bfloat16).
+                    steered_activation = steered_activation.to(original_dtype)
 
                     # Reshape back
                     if B is not None and T is not None:
