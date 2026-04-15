@@ -106,6 +106,11 @@ class InterpretableModel(nn.Module):
 
             # Create hook function
             def make_hook(hp, sae_model):
+                # Capture SAE weight dtype once at hook creation; the base
+                # model typically runs in bfloat16 while SAE weights are
+                # float32, so activations need to be cast before the matmul.
+                sae_dtype = sae_model.W_enc.dtype
+
                 def hook_fn(module, input, output):
                     # Get activation
                     if isinstance(output, tuple):
@@ -122,9 +127,7 @@ class InterpretableModel(nn.Module):
                     else:
                         activation_flat = activation
 
-                    # Cast to float32 to match SAE weight dtype (base model
-                    # typically runs in bfloat16, but SAE weights are float32).
-                    sae_dtype = sae_model.W_enc.dtype
+                    # Cast to SAE weight dtype (e.g. bf16 -> fp32).
                     activation_flat = activation_flat.to(sae_dtype)
 
                     with torch.no_grad():
@@ -183,6 +186,11 @@ class InterpretableModel(nn.Module):
             sae = self.saes[hook_point]
 
             def make_steering_hook(sae_model, feat_idx, steer_strength):
+                # Capture SAE weight dtype once at hook creation; the base
+                # model typically runs in bfloat16 while SAE weights are
+                # float32, so activations need to be cast before the matmul.
+                sae_dtype = sae_model.W_enc.dtype
+
                 def hook_fn(module, input, output):
                     # Get activation
                     if isinstance(output, tuple):
@@ -201,9 +209,7 @@ class InterpretableModel(nn.Module):
                     else:
                         B, T, D = None, None, None
 
-                    # Cast to float32 to match SAE weight dtype (base model
-                    # typically runs in bfloat16, but SAE weights are float32).
-                    sae_dtype = sae_model.W_enc.dtype
+                    # Cast to SAE weight dtype (e.g. bf16 -> fp32).
                     activation = activation.to(sae_dtype)
 
                     # Get current features
