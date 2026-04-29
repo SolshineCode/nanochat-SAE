@@ -38,6 +38,41 @@ What you get here:
 ✅ Comprehensive documentation
 ✅ Google Colab notebook for training SAEs on free T4 GPU
 
+## Build Your Own "Golden Gate Claude"!
+
+Remember when Anthropic's [Golden Gate Claude](https://www.anthropic.com/research/golden-gate-claude) went viral? They found a single SAE feature for the Golden Gate Bridge and cranked it up — making Claude obsessed with the bridge in every response.
+
+**Now you can do the same thing with nanochat-SAE!**
+
+### Interactive Notebook (Recommended)
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/master/golden_gate_walkthrough.ipynb)
+
+A fun, visual walkthrough that takes you from zero to feature-steering in ~10 minutes:
+- Build a miniature transformer ("your tiny Claude")
+- Train an SAE to decompose its thoughts into interpretable features
+- Find your "Golden Gate" feature and crank it up
+- Watch the model become obsessed — just like the real thing!
+- Rich visualizations: probability distributions, heatmaps, steering landscapes
+
+### Command-Line Demo
+
+```bash
+# Run locally — no GPU needed, ~2 minutes on CPU
+python golden_gate_demo.py
+```
+
+A step-by-step terminal walkthrough with detailed explanations of every concept.
+
+### What You'll Learn
+
+| Concept | What It Means |
+|---------|--------------|
+| Sparse Autoencoders | Decompose dense activations into sparse, interpretable features |
+| Feature = Concept | Each SAE feature is a direction in representation space |
+| Feature Steering | Amplify/suppress features during inference to change behavior |
+| Golden Gate Effect | Extreme amplification makes the model "obsessed" with one concept |
+
 ## 🚀 Quick Start on Google Colab (FREE!)
 
 Train SAEs on Karpathy's pre-trained **nanochat-d32** (1.88B params) using Google Colab's **free T4 GPU** — fully automated, ~6 minutes end-to-end:
@@ -242,6 +277,8 @@ honest_output = interp_model.steer(
 ```
 nanochat-sae/
 ├── README.md                              # This file
+├── golden_gate_walkthrough.ipynb         # 🆕 "Golden Gate Claude" tutorial notebook
+├── golden_gate_demo.py                  # 🆕 "Golden Gate Claude" CLI walkthrough
 ├── colab_sae_training.ipynb              # Standard SAE training notebook
 ├── colab_sae_deception_training.ipynb    # 🆕 Deception-focused SAE training
 ├── speedrun.sh                            # Train nanochat model (original)
@@ -289,15 +326,13 @@ nanochat-sae/
 - **Production tools** - Build monitoring dashboards for deployed models
 - **Contribute** - Submit PRs for new features and improvements
 
-## Tutorials & Examples (Coming Soon!)
-We're working on comprehensive tutorials:
+## Tutorials & Examples
 
-- 📘 **Basic Tutorial**: Train your first SAE
-- 📗 **Feature Analysis**: Discover interpretable concepts
-- 📙 **Feature Steering**: Modify model behavior
-- 📕 **Multi-Layer Analysis**: Compare features across depths
-- 📓 **Neuronpedia Integration**: Share your discoveries
-- 📔 **Case Studies**: Real findings from nanochat models
+- 📘 **[Golden Gate Walkthrough](golden_gate_walkthrough.ipynb)**: Build your own "Golden Gate Claude" — the most fun way to learn SAE feature steering! [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SolshineCode/nanochat-SAE/blob/master/golden_gate_walkthrough.ipynb)
+- 📗 **[Golden Gate Demo](golden_gate_demo.py)**: Same walkthrough as a CLI script — run locally in ~2 minutes
+- 📙 **[SAE Training Notebook](colab_sae_training.ipynb)**: Train SAEs on the pre-trained nanochat-d32 model (1.88B params)
+- 📕 **[Deception Detection](colab_sae_deception_training.ipynb)**: Find deception-related features using Anthropic's datasets
+- 📓 **[End-to-End Demo](demo_sae.py)**: Complete pipeline from model creation to feature dashboards
 
 Want to contribute a tutorial? Open an issue or PR!
 
