@@ -12,10 +12,6 @@ Train your own ChatGPT from scratch. Then understand what it learned.
 
 This is a research fork of Andrej Karpathy's nanochat extended with Sparse Autoencoder (SAE) based interpretability tools created and maintained by Caleb DeLeeuw. You get the full nanochat training pipeline PLUS the ability to peer inside your model and discover the features it learned.
 
-## Newer work building on this
-
-The SAE toolkit here is the entry point. More recent follow-on research applies the same feature-decomposition idea to larger open-weight models and to the correctness problem of getting a faithful readout in the first place: making sure the SAE feature activations attached to a label come from the exact same forward pass that produced the label, not a separate replay through a hooked model. That work also underlies my AAAI 2026 first-author paper on SAE-based deception detection ([The Secret Agenda](https://arxiv.org/abs/2509.20393)), which found that SAE features auto-labeled for deception often do not reliably fire during actual strategic lying. Details on that follow-on work are available on request.
-
 ## What's This About?
 nanochat teaches you to build a ChatGPT-like model for ~$100.
 nanochat-SAE teaches you to understand what that model actually learned.
